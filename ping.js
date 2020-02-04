@@ -9,6 +9,7 @@ const cors = require('cors');
 app.use(cors());
 app.get('/statuscode', (req, res) => {
     // Pull message from query string in request
+    let message1 = console.log(req)
     let message = req.query.message;
     // validate input
  
