@@ -1,0 +1,4 @@
+axios.get('https://codepen.io')
+  .then(function (response) {
+    console.log(response);
+  })
