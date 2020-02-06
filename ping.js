@@ -1,43 +1,69 @@
-var request = require('request');
+const request = require('request');
 const PORT = 65500
 const express = require('express');
-const app = express();
 const cors = require('cors');
-//Blow up the URL
+const bodyParser = require('body-parser');
+const puppeteer = require('puppeteer')
+const app = express();
 
 
+// hit the url with https://yourserver.com/statuscheck?url=https://www.google.com
+// or send the URL as form data
+
+app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 app.get('/statuscode', (req, res) => {
-    // Pull message from query string in request
-    let message1 = console.log(req)
-    let message = req.query.message;
-    // validate input
- 
-        res.send('connected - success');
+    let protocol = ["http://","http://www."]
+    let form_data = req.body.url
+    let queryString = req.query.url;
+    let test_case = form_data || queryString
+    let newUrl = parse_URL(test_case).host
+    let end_url
+
+        protocol.forEach(a => {
+            var temp_url = a + newUrl
+    
+            console.log('loop' , temp_url)
+            request
+                .get({url:temp_url,followAllRedirect:false,followRedirect : false}) // http://
+                .on('response', async function (response) { 
+                    // get the resolved url
+                 if(response.statusCode == 200) {
+                    res.send(await ssr(temp_url))
+                }
+                        
+
+                });  
+    });
 });
+
 
 app.listen(PORT, function () {
     console.log('Server is running on Port:', PORT);
 });
 
-
-
-request
-    .get('http://www.google.com/')
-    .on('response', function (response) {
-        console.log(response.statusCode) // 200
-    })
-
-
+async function ssr(temp_url)  {
+    console.log('puppeteerpls')
+    const browser = await puppeteer.launch({headless: true});
+    const page = await browser.newPage();
+    const res = await page.goto('http://www.google.com');
+    var data = await page.evaluate(async function(){
+        return window.location.href;
+    });
+    await browser.close();
+    return parse_URL(data).clean
+    }
 
 function parse_URL(url) {
-    var a = document.createElement("a");
-    a.href = url;
+    console.log('URL PARSE  ' + url)
+    const a = new URL(url)
     return {
         source: url,
         protocol: a.protocol.replace(":", ""),
-        host: a.hostname,
+        hostname: a.hostname,
+        host:a.host.indexOf('www.') && a.host || a.host.replace('www.', ''),
         port: a.port,
+        clean:a.protocol+a.hostname,
         query: a.search,
         params: (function () {
             var ret = {},
@@ -54,10 +80,11 @@ function parse_URL(url) {
             }
             return ret;
         })(),
-        file: (a.pathname.match(/\/([^\/?#]+)$/i) || [, ""])[1],
+        file: (a.pathname.match(/\/([^\/?#]+)$/i) || [, ""])[1], 
         hash: a.hash.replace("#", ""),
         path: a.pathname.replace(/^([^\/])/, "/$1"),
         relative: (a.href.match(/tps?:\/\/[^\/]+(.+)/) || [, ""])[1],
         segments: a.pathname.replace(/^\//, "").split("/")
     };
 }
+

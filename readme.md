@@ -55,7 +55,7 @@ We use [SemVer](http://semver.org/) for versioning. Currently 0.1.0
 
 ## Authors
 
-* **Joshua WFranklin Wiedeman** - *Initial work* - [jwiedeman](https://github.com/jwiedeman)
+* **Joshua Franklin Wiedeman** - *Initial work* - [jwiedeman](https://github.com/jwiedeman)
 
 See also the list of [contributors](https://github.com/jwiedeman/StatusCheck/graphs/contributors) who participated in this project.
 
