@@ -1,21 +1,18 @@
 {
-  "name": "ping",
+  "name": "server",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "axios": "^0.19.2",
-    "body-parser": "^1.19.0",
-    "cheerio": "^1.0.0-rc.3",
-    "colors": "^1.4.0",
     "cors": "^2.8.5",
     "express": "^4.17.1",
-    "puppeteer": "^2.1.0",
-    "request": "^2.88.0"
+    "puppeteer": "^1.17.0",
+    "sitemap-stream-parser": "^1.7.0"
   }
 }
