@@ -1,7 +1,7 @@
 <template>
   <div class="hello">
-
-    <button @click="reverseMessage">C L I C K</button>
+    <button @click="reverseMessage">Click to crawl site</button>
+    <input v-model='message'>
     <p>: {{ reversedText }}</p>
   </div>
 </template>
@@ -20,7 +20,7 @@ export default {
   methods: {
     reverseMessage() {
       // Send a request to our server, including the message in the query string
-      axios.get('http://73.240.171.135:65500/message?message=' + this.message).then((response) => {
+      axios.get('http://localhost:65500/statuscode?url=' + this.message).then((response) => {
         // Takes the response we received and sets our "reversedText" variable to it
         this.reversedText = response.data;
       }).catch(error => {

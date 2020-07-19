@@ -1,3 +1,4 @@
+console.clear()
 const axios = require('axios');
 const colors = require('colors');
 const express = require('express');
@@ -26,7 +27,9 @@ axios.defaults.headers.common['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win
 let clean_url ={}
 const url_cases = [
   'http://',
-  'http://www.'
+  'http://www.',
+   'https://',
+   'https://www.'
 ];
 
 function getFinalUrlFromResponse(response, requestedUrl) {
@@ -43,7 +46,6 @@ function parseResponse(requestedUrl, response, error = null) {
   ? ` * ${requestedUrl} (\x1b[32m${response.status}\x1b[0m)`
   : ` * ${requestedUrl} (\x1b[31m${response.status}\x1b[0m)`
 
-
   if (requestedUrl !== finalLocation) {
     requestPart == 200  ? clean_url = clean_url.requestedUrl = 200: console.log('Not an acceptable URL')
     requestPart == 302  ? clean_url = clean_url.finalLocation = 302: console.log('Not an acceptable URL')
@@ -51,16 +53,13 @@ function parseResponse(requestedUrl, response, error = null) {
   } else {
     console.log(` * ${requestPart} -> OK`);
   }
-
 }
 
 app.get('/statuscode', (req, res) => {
-    
     let form_data = req.body.url
     let query_string = req._parsedUrl.query.replace('url=',''); // does axios not parse query strings?
-    console.log(query_string)
-    let url_request = form_data || query_string
-    let clean_url = parse_URL(url_request).host  // Strips everything down to only the domain name and domain extension. 
+    let url_request = form_data || query_string // accept either form data or query string
+    let clean_url = parse_URL(url_request).host  // Strips everything down to only the domain name and TLD
     url_cases.forEach((url,index) => {
             let new_url = url + clean_url
             axios.get(new_url)
@@ -82,7 +81,6 @@ app.listen(PORT, function () {
 });
 
 function parse_URL(url) {
-    console.log('URL PARSE  ' + url)
     const a = new URL(url)
     return {
         source: url,

@@ -18,7 +18,7 @@ colors.setTheme({
 });
 
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cors());
+
 
 axios.defaults.maxRedirects = 0;
 axios.defaults.headers.common['Upgrade-Insecure-Requests'] = 1
