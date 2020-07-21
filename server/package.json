@@ -10,8 +10,11 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "axios": "^0.19.2",
+    "colors": "^1.4.0",
     "cors": "^2.8.5",
     "express": "^4.17.1",
+    "mongoose": "^5.9.25",
     "puppeteer": "^1.17.0",
     "sitemap-stream-parser": "^1.7.0"
   }

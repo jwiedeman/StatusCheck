@@ -3,9 +3,11 @@ const axios = require('axios');
 const colors = require('colors');
 const express = require('express');
 const bodyParser = require('body-parser');
+const mongoose = require('mongoose')
 const cors = require('cors')
 const PORT = 65500
 const app = express();
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cors());
 // set theme
@@ -21,6 +23,9 @@ colors.setTheme({
   error: 'red'
 });
 
+
+
+
 axios.defaults.maxRedirects = 0;
 axios.defaults.headers.common['Upgrade-Insecure-Requests'] = 1
 axios.defaults.headers.common['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML. like Gecko) Chrome/79.0.3945.130 Safari/537.36'
@@ -28,32 +33,51 @@ let clean_url ={}
 const url_cases = [
   'http://',
   'http://www.',
-   'https://',
-   'https://www.'
+  'https://',
+  'https://www.'
 ];
 
-function getFinalUrlFromResponse(response, requestedUrl) {
-  if (!response) return null;
-  const headerLocation = response.headers && response.headers.location;
-  return !headerLocation ? requestedUrl : new URL(headerLocation, requestedUrl).href;
+
+
+// Mongoose Server 
+mongoose.connect('mongodb://localhost/test' , {useNewUrlParser : true , useUnifiedTopology : true} )
+const db = mongoose.connection
+db.on('error', console.error.bind(console, 'connection error:'));
+db.once('open', function() {
+  console.log('Database connected to mongodb')// we're connected!
+});
+
+
+const kittySchema = new mongoose.Schema({
+  name: String
+});
+
+kittySchema.methods.speak = function () {
+  const greeting = this.name
+    ? "Meow name is " + this.name
+    : "I don't have a name";
+  console.log(greeting);
 }
 
-function parseResponse(requestedUrl, response, error = null) {
-  if (!response) return;
-  const finalLocation = getFinalUrlFromResponse(response, requestedUrl);
-  const acceptableStatuses = { 200 : true , 302 : true };
-  const requestPart = acceptableStatuses[response.status]
-  ? ` * ${requestedUrl} (\x1b[32m${response.status}\x1b[0m)`
-  : ` * ${requestedUrl} (\x1b[31m${response.status}\x1b[0m)`
 
-  if (requestedUrl !== finalLocation) {
-    requestPart == 200  ? clean_url = clean_url.requestedUrl = 200: console.log('Not an acceptable URL')
-    requestPart == 302  ? clean_url = clean_url.finalLocation = 302: console.log('Not an acceptable URL')
-    console.log(` * ${requestPart} -> ${finalLocation}`);
-  } else {
-    console.log(` * ${requestPart} -> OK`);
-  }
-}
+const Kitten = mongoose.model('Kitten', kittySchema);
+
+const silence = new Kitten({ name: 'Silence' });
+
+
+silence.save(function (err, fluffy) {
+  if (err) return console.error(err);
+  silence.speak();
+});
+
+Kitten.find(function (err, kittens) {
+  if (err) return console.error(err);
+  console.log(kittens);
+})
+
+
+
+
 
 app.get('/statuscode', (req, res) => {
     let form_data = req.body.url
@@ -64,14 +88,9 @@ app.get('/statuscode', (req, res) => {
             let new_url = url + clean_url
             axios.get(new_url)
             .then((response) =>{
-                parseResponse(new_url, response);
+                res.send(parseResponse(new_url, response))
             })
-            .catch((error) => parseResponse(new_url, error.response, error));
-            
-            if(index == url_cases.length-1) {
-                console.log(clean_url)
-                res.send(clean_url)
-              }
+            .catch((error) => null);
     });
 });
 
@@ -113,4 +132,18 @@ function parse_URL(url) {
     };
 }
 
+function getFinalUrlFromResponse(response, requestedUrl) {
+  if (!response) return null;
+  const headerLocation = response.headers && response.headers.location;
+  return !headerLocation ? requestedUrl : new URL(headerLocation, requestedUrl).href;
+}
+
+function parseResponse(requestedUrl, response, error = null) {
+  const finalLocation = getFinalUrlFromResponse(response, requestedUrl);
+  const acceptableStatuses = { 200 : true };
+  const requestPart = acceptableStatuses[response.status]
+  if(acceptableStatuses[response.status] == true) {
+    return finalLocation
+  } 
+}
 
