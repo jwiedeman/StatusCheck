@@ -5,10 +5,14 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const mongoose = require('mongoose')
 const cors = require('cors')
+const cheerio = require('cheerio')
 const PORT = 65500
 const app = express();
+const log = console.log;
+
 
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 app.use(cors());
 // set theme
 colors.setTheme({
@@ -22,8 +26,6 @@ colors.setTheme({
   debug: 'blue',
   error: 'red'
 });
-
-
 
 
 axios.defaults.maxRedirects = 0;
@@ -48,11 +50,21 @@ db.once('open', function() {
 });
 
 
-const kittySchema = new mongoose.Schema({
-  name: String
+
+
+
+const entitySchema = new mongoose.Schema({
+  name: String,
+  domainName : String,
+  pages:[
+    {
+      pageUrl:String,
+      crawled:Boolean
+    }
+  ]
 });
 
-kittySchema.methods.speak = function () {
+entitySchema.methods.speak = function () {
   const greeting = this.name
     ? "Meow name is " + this.name
     : "I don't have a name";
@@ -60,35 +72,114 @@ kittySchema.methods.speak = function () {
 }
 
 
-const Kitten = mongoose.model('Kitten', kittySchema);
-
-const silence = new Kitten({ name: 'Silence' });
+const Entity = mongoose.model('Kitten', entitySchema);
 
 
-silence.save(function (err, fluffy) {
-  if (err) return console.error(err);
-  silence.speak();
+
+app.get('/getcontext', (req, res) => {
+  log('GET REQUEST - Context Requested'.bgBlack.red)
+  Entity.find(function (err, dbcontent) {
+    if (err) return console.error(err);
+    res.send(dbcontent)
+  })     
 });
 
-Kitten.find(function (err, kittens) {
-  if (err) return console.error(err);
-  console.log(kittens);
-})
+
+app.post('/deleteentity',function(req,res){
+  log('GET REQUEST - deleteentity Requested'.bgBlack.red)
+  Entity.deleteOne({ _id: req.body._id }).then(console.log('delete',req.body));
+  res.send()
+});
+
+app.post('/crawltarget', async (req,res) => {
+  let dbQuery = await Entity.find({_id: req.body._id}).exec();
+  let entityPages = dbQuery[0].pages 
+  let workList = [dbQuery[0].name] // initial entry point 
+  
+  /*
+  workList.forEach(async element => {
+    await fetchData(element).then(async (res) => { 
+      const html = res.data;
+      const $ = cheerio.load(html);
+      const targetPageLinks = $("a[href*='http']")
+      
+      await targetPageLinks.each(function(i,link){
+       _link = domainName($(link).attr('href'))
+       _origin =  domainName(dbQuery[0].name)
+       _link==_origin  ? workList.push($(link).attr('href')) : null
+      })
+    })
+  })*/
 
 
+    while(workList.length > 0) {
+       let res = await fetchData(workList[0]).then(async (res) => { 
+         log('REMOVING',workList.shift())
+        const html = res.data;
+        const $ = cheerio.load(html);
+        const targetPageLinks = $("a[href*='http']")
+        
+        await targetPageLinks.each(function(i,link){
+         _link = domainName($(link).attr('href'))
+         _origin =  domainName(dbQuery[0].name)
+         _link==_origin  ? workList.push($(link).attr('href')) : null
+         _link==_origin  ? log(_link , _origin , $(link).attr('href') ) : null
+        })
+        
+      }) 
+       
+    }
+  
 
 
+  /*
+    fetchData(workList[0]).then(async (res) => { 
+      const html = res.data;
+      const $ = cheerio.load(html);
+      const targetPageLinks = $("a[href*='http']")
+      
+      await targetPageLinks.each(function(i,link){
+       _link = domainName($(link).attr('href'))
+       _origin =  domainName(dbQuery[0].name)
+       console.log(_link , _origin)
+       _link==_origin  ? workList.push($(link).attr('href')) : null
+      })
 
-app.get('/statuscode', (req, res) => {
+      let cleanSet = new Set(dbQuery[0].pages)
+      dbQuery[0].pages = [...cleanSet]
+      dbQuery[0].save()
+    })
+
+
+  }*/
+  
+res.send()
+});
+
+
+app.post('/statuscode', (req, res) => {
+  console.log('Axios Requested : ' + req.body.url)
     let form_data = req.body.url
-    let query_string = req._parsedUrl.query.replace('url=',''); // does axios not parse query strings?
-    let url_request = form_data || query_string // accept either form data or query string
-    let clean_url = parse_URL(url_request).host  // Strips everything down to only the domain name and TLD
+    let clean_url = parse_URL(form_data).host  // Strips everything down to only the domain name and TLD
     url_cases.forEach((url,index) => {
             let new_url = url + clean_url
             axios.get(new_url)
             .then((response) =>{
-                res.send(parseResponse(new_url, response))
+                var parseResult = parseResponse(new_url, response)
+                Entity.findOne({name:parseResult}, function(err, entity){
+                  if(err) console.log(err);
+                  if ( entity){
+                      console.log("This has already been saved");
+                  } else {
+                      var entity = new Entity({ name: parseResult });
+                      entity.save(function(err, entity) {
+                          if(err) console.log(err);
+                          console.log("New entity created" , entity );
+                      
+                      });
+                  }
+                });
+                res.send(parseResult)
             })
             .catch((error) => null);
     });
@@ -146,4 +237,39 @@ function parseResponse(requestedUrl, response, error = null) {
     return finalLocation
   } 
 }
+
+function arrayUnique(array) {
+  var a = array.concat();
+  for(var i=0; i<a.length; ++i) {
+      for(var j=i+1; j<a.length; ++j) {
+          if(a[i] === a[j])
+              a.splice(j--, 1);
+      }
+  }
+
+  return a;
+}
+
+async function fetchData(url){
+  log(("Requesting data... " + url).white)
+  let response = await axios(url).catch((err) => log(err.bgRed));
+  if(response.status !== 200){
+      log("Error occurred while fetching data".bgRed);
+      return;
+  }
+  return response;
+}
+
+function domainName(domain) {
+  const a = new URL(domain)
+  a.href = domain;
+  const { hostname } = a;
+  const hostSplit = hostname.split('.');
+  hostSplit.pop();
+  if (hostSplit.length > 1) {
+    hostSplit.shift();
+  }
+  return hostSplit.join();
+}
+
 
