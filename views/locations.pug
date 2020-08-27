@@ -1,0 +1,53 @@
+extends layout
+
+block content
+  .border.border-success.my-3
+
+    form(method='POST' action='locations/create')
+      input(type='hidden', name='_csrf', value=_csrf)
+      strong New Production Location
+      small A production location is a defined space where production occurs.
+      br
+      input.form-control.form-control-sm(type='text', name='name', id='name', autocomplete='name', autofocus, required, placeholder='New Production Location Name')
+      input.form-control.form-control-sm(type='number' placeholder='Number of slots in location', required, name='slotCount', )
+      
+      button.btn.btn-success(type='submit')
+            | Create new Production Location
+
+
+
+  div.border.border-dark.container
+    strong Production Locations
+      each loc, index in location
+        div#accordion.accordion-toggle.border.border-dark
+         .row(data-toggle='collapse', href='#collapse'+index)
+            .col
+              strong='Name : '+ loc.name
+            .col
+              | Total Slots : #{loc.slots.length}
+              
+            
+        div(id='collapse'+index class=['panel-collapse','collapse','in']).container
+            .row
+              div.border.border-warning.col
+                form(action='/locations/edit', method='POST')
+                  input(type='hidden', name='_csrf', value=_csrf)
+                  input(type='hidden', name='itemId', value=loc._id)
+                  label Modify value : 
+                  input(type='text', name='newName', value=loc.name)
+                  br
+                  button.btn.btn-warning(type='submit')
+                      | Save modified values
+                
+
+              div.border.border-danger.col
+                p 
+                  | Deletes location & all location data
+                form(action='/locations/delete', method='POST')
+                    input(type='hidden', name='_csrf', value=_csrf)
+                    input(type='hidden', name='deleteId', value=loc)
+                    button.btn.btn-danger(type='submit')
+                      | Delete location :  #{loc.name}
+
+    
+
