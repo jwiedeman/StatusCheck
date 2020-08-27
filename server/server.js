@@ -14,6 +14,7 @@ const log = console.log;
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 app.use(cors());
+
 // set theme
 colors.setTheme({
   input: 'grey',
@@ -114,20 +115,22 @@ app.post('/crawltarget', async (req,res) => {
 
     while(workList.length > 0) {
        let res = await fetchData(workList[0]).then(async (res) => { 
-         log('REMOVING',workList.shift())
+        setTimeout(function(){  
+          log('REMOVING',workList.shift())
         const html = res.data;
         const $ = cheerio.load(html);
         const targetPageLinks = $("a[href*='http']")
-        
+        /*
         await targetPageLinks.each(function(i,link){
          _link = domainName($(link).attr('href'))
          _origin =  domainName(dbQuery[0].name)
          _link==_origin  ? workList.push($(link).attr('href')) : null
          _link==_origin  ? log(_link , _origin , $(link).attr('href') ) : null
         })
+        */
+        }, 500);
         
       }) 
-       
     }
   
 
